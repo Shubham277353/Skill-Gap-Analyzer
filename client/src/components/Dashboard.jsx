@@ -7,13 +7,15 @@ function Dashboard({ data, onRestart }) {
   const { matchScore, gapLevel, strengths, skillCoverage, finalSkillProfile, aiSummary, aiSkillInsights, missingSkills, roadmap, recommendedCertifications, careerLevel, aiConfidence, assessmentResult } = data;
   const [animatedScore, setAnimatedScore] = useState(0);
   const [simulatedScore, setSimulatedScore] = useState(null);
-  const [isSimulated, setIsSimulated] = useState(false);
+  const [showSimModal, setShowSimModal] = useState(false);
+  const [modalScore, setModalScore] = useState(0);
   const [completedTasks, setCompletedTasks] = useState({});
 
   useEffect(() => {
-    let start = 0;
-    const end = simulatedScore || matchScore;
-    const increment = end / (2000 / 16);
+    let start = animatedScore;
+    const end = simulatedScore !== null ? simulatedScore : matchScore;
+    if (start === end) return;
+    const increment = Math.max(1, (end - start) / (800 / 16));
     const timer = setInterval(() => {
       start += increment;
       if (start >= end) { setAnimatedScore(end); clearInterval(timer); }
@@ -30,8 +32,26 @@ function Dashboard({ data, onRestart }) {
   };
 
   const handleSimulate = () => {
-    setSimulatedScore(Math.min(98, matchScore + 28));
-    setIsSimulated(true);
+    const totalGapSkills =
+      (missingSkills?.critical?.length || 0) +
+      (missingSkills?.important?.length || 0) +
+      (missingSkills?.optional?.length || 0);
+    const totalRequired = (strengths?.length || 0) + totalGapSkills;
+    const gainPerTask = totalRequired > 0 ? (100 / totalRequired) : 0;
+    const projectedGain = Math.round(completedCount * gainPerTask);
+    const projected = Math.min(98, matchScore + projectedGain);
+    setSimulatedScore(projected);
+    // open modal and animate from current score → projected
+    setModalScore(matchScore);
+    setShowSimModal(true);
+    let current = matchScore;
+    const target = projected;
+    const step = Math.max(1, Math.round((target - current) / 40));
+    const interval = setInterval(() => {
+      current += step;
+      if (current >= target) { setModalScore(target); clearInterval(interval); }
+      else setModalScore(current);
+    }, 30);
   };
 
   const toggleTask = (monthIndex, taskIndex) => {
@@ -89,9 +109,10 @@ function Dashboard({ data, onRestart }) {
           <p className="gap-level">
             Gap Level: <span className={`badge ${gapLevel?.toLowerCase()}`}>{gapLevel}</span>
           </p>
-          {isSimulated && (
+          {simulatedScore !== null && (
             <div className="simulation-result">
-              <p className="improvement">📈 Projected: +{simulatedScore - matchScore}% after roadmap</p>
+              <p className="improvement">📈 Projected score: {simulatedScore}% (+{simulatedScore - matchScore}%)</p>
+              <p className="simulation-note">Based on {completedCount} of {totalTasks} tasks completed</p>
             </div>
           )}
         </div>
@@ -301,12 +322,92 @@ function Dashboard({ data, onRestart }) {
             </div>
           ))}
         </div>
-        {!isSimulated && (
-          <button onClick={handleSimulate} className="simulate-btn">
-            🔮 Simulate Score After Completing Roadmap
+        {simulatedScore === null ? (
+          progressPercent === 100 ? (
+            <button onClick={handleSimulate} className="simulate-btn">
+              🔮 Calculate Your Projected Score
+            </button>
+          ) : (
+            <div className="simulate-locked">
+              <span>🔒 Complete all {totalTasks} tasks to unlock projected score</span>
+              <div className="simulate-lock-bar">
+                <div className="simulate-lock-fill" style={{ width: `${progressPercent}%` }}></div>
+              </div>
+              <span className="simulate-lock-pct">{progressPercent}% done</span>
+            </div>
+          )
+        ) : (
+          <button onClick={() => setSimulatedScore(null)} className="simulate-reset-btn">
+            ↩ Reset Projection
           </button>
         )}
       </div>
+
+      {/* Projection Modal */}
+      {showSimModal && simulatedScore !== null && (
+        <div className="sim-modal-overlay" onClick={() => setShowSimModal(false)}>
+          <div className="sim-modal" onClick={e => e.stopPropagation()}>
+            <button className="sim-modal-close" onClick={() => setShowSimModal(false)}>✕</button>
+
+            <div className="sim-modal-particles">
+              {[...Array(12)].map((_, i) => (
+                <span key={i} className={`particle particle-${i % 6}`} />
+              ))}
+            </div>
+
+            <h2 className="sim-modal-title">🎯 Projected Score</h2>
+            <p className="sim-modal-subtitle">After completing all {totalTasks} roadmap tasks</p>
+
+            <div className="sim-modal-scores">
+              <div className="sim-score-block">
+                <span className="sim-score-label">Current</span>
+                <div className="sim-circle-wrap current-circle">
+                  <CircularProgressbar
+                    value={matchScore}
+                    text={`${matchScore}%`}
+                    styles={buildStyles({
+                      pathColor: getScoreColor(matchScore),
+                      textColor: getScoreColor(matchScore),
+                      trailColor: '#e5e7eb',
+                      pathTransitionDuration: 0.8
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div className="sim-arrow">→</div>
+
+              <div className="sim-score-block">
+                <span className="sim-score-label">Projected</span>
+                <div className="sim-circle-wrap projected-circle">
+                  <CircularProgressbar
+                    value={modalScore}
+                    text={`${modalScore}%`}
+                    styles={buildStyles({
+                      pathColor: getScoreColor(modalScore),
+                      textColor: getScoreColor(modalScore),
+                      trailColor: '#e5e7eb',
+                      pathTransitionDuration: 0.1
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="sim-modal-gain">
+              +{simulatedScore - matchScore}% improvement
+            </div>
+
+            <p className="sim-modal-note">
+              Based on {completedCount} of {totalTasks} tasks completed
+            </p>
+
+            <button className="sim-modal-dismiss" onClick={() => setShowSimModal(false)}>
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Certifications */}
       {recommendedCertifications?.length > 0 && (
