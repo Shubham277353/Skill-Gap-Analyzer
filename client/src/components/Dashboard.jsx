@@ -4,7 +4,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import '../styles/Dashboard.css';
 
 function Dashboard({ data, onRestart }) {
-  const { matchScore, gapLevel, strengths, skillCoverage, aiSummary, missingSkills, roadmap, recommendedCertifications, careerLevel, aiConfidence, assessmentResult } = data;
+  const { matchScore, gapLevel, strengths, skillCoverage, finalSkillProfile, aiSummary, aiSkillInsights, missingSkills, roadmap, recommendedCertifications, careerLevel, aiConfidence, assessmentResult } = data;
   const [animatedScore, setAnimatedScore] = useState(0);
   const [simulatedScore, setSimulatedScore] = useState(null);
   const [isSimulated, setIsSimulated] = useState(false);
@@ -155,7 +155,40 @@ function Dashboard({ data, onRestart }) {
         </div>
       )}
 
-      {/* Assessment Result */}
+      {/* Skill Breakdown — Final Profile */}
+      {finalSkillProfile && Object.keys(finalSkillProfile).length > 0 && (
+        <div className="card skill-breakdown-card">
+          <h3>🧠 Skill Breakdown</h3>
+          <p className="breakdown-subtitle">Match Score = skill coverage &nbsp;·&nbsp; Test Score = skill depth</p>
+          <div className="breakdown-grid">
+            {Object.entries(finalSkillProfile).map(([skill, status]) => (
+              <div key={skill} className={`breakdown-item status-${status.toLowerCase()}`}>
+                <span className="breakdown-skill">{skill}</span>
+                <span className="breakdown-badge">
+                  {status === 'Verified'   && '✅ Verified'}
+                  {status === 'Discovered' && '✨ Discovered'}
+                  {status === 'Declared'   && '📝 Declared'}
+                  {status === 'Weak'       && '⚠️ Weak'}
+                  {status === 'Missing'    && '❌ Missing'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Skill Insights */}
+      {aiSkillInsights && (
+        <div className="card ai-skill-insights-card">
+          <div className="insights-header">
+            <span className="insights-icon">💡</span>
+            <h3>AI Skill Insights</h3>
+          </div>
+          <p className="insights-text">{aiSkillInsights}</p>
+        </div>
+      )}
+
+      {/* Assessment Result — Skill-wise breakdown */}
       {assessmentResult && (
         <div className="card assessment-result-card">
           <h3>📝 Skill Assessment Result</h3>
@@ -165,7 +198,7 @@ function Dashboard({ data, onRestart }) {
               <span>{assessmentResult.percentage}%</span>
             </div>
             <div className="assessment-info">
-              <p>Skill Level: <strong>{assessmentResult.skillLevel}</strong></p>
+              <p>Overall Proficiency: <strong>{assessmentResult.skillLevel}</strong></p>
               <div className="assessment-bar-wrap">
                 <div className={`assessment-bar-fill ${assessmentResult.percentage >= 80 ? 'green' : assessmentResult.percentage >= 50 ? 'yellow' : 'red'}`}
                   style={{ width: `${assessmentResult.percentage}%` }}>
@@ -173,12 +206,21 @@ function Dashboard({ data, onRestart }) {
               </div>
             </div>
           </div>
-          {assessmentResult.weakAreas?.length > 0 && (
-            <div className="weak-areas-dashboard">
-              <h4>⚠️ Weak Areas from Test</h4>
-              <div className="weak-tags">
-                {assessmentResult.weakAreas.slice(0, 5).map((area, i) => (
-                  <span key={i} className="weak-tag">{area}</span>
+          {assessmentResult.skillBreakdown && Object.keys(assessmentResult.skillBreakdown).length > 0 && (
+            <div className="skill-wise-breakdown">
+              <h4>Skill-wise Performance</h4>
+              <div className="skill-wise-grid">
+                {Object.entries(assessmentResult.skillBreakdown).map(([skill, data]) => (
+                  <div key={skill} className={`skill-wise-item level-${data.level.toLowerCase()}`}>
+                    <div className="skill-wise-header">
+                      <span className="skill-wise-name">{skill}</span>
+                      <span className="skill-wise-score">{data.correct}/{data.total}</span>
+                    </div>
+                    <div className="skill-wise-bar">
+                      <div className="skill-wise-fill" style={{ width: `${data.proficiency}%` }}></div>
+                    </div>
+                    <span className="skill-wise-label">{data.proficiency}% — {data.level}</span>
+                  </div>
                 ))}
               </div>
             </div>

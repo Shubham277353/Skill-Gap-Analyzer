@@ -73,6 +73,18 @@ function SkillAssessment({ targetRole, onComplete, onSkip }) {
     </div>
   );
 
+  if (!questions.length) return (
+    <div className="assessment-container">
+      <div className="result-card" style={{ textAlign: 'center' }}>
+        <h2>⚠️ Could not load questions</h2>
+        <p>Assessment questions are unavailable for this role.</p>
+        <div className="result-actions">
+          <button onClick={onSkip} className="continue-btn">Skip & Continue to Analysis →</button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (submitting) return (
     <div className="assessment-container">
       <div className="assessment-loading">Evaluating your answers...</div>
@@ -125,6 +137,7 @@ function SkillAssessment({ targetRole, onComplete, onSkip }) {
     <div className="assessment-container">
       <div className="assessment-header">
         <h2>Skill Assessment — {targetRole}</h2>
+        <p>These questions test your knowledge of the <strong>{targetRole}</strong> role to personalize your roadmap.</p>
         <p>Question {current + 1} of {questions.length}</p>
       </div>
 

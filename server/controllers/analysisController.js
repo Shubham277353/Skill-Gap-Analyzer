@@ -4,30 +4,30 @@ const LearningPath = require('../models/LearningPath');
 const groq = require('../config/groq');
 const pdfParse = require('pdf-parse');
 
+// Fuzzy match: does userSkill name cover requiredSkill?
+const skillMatches = (userSkill, reqSkill) =>
+  userSkill.toLowerCase().includes(reqSkill.toLowerCase()) ||
+  reqSkill.toLowerCase().includes(userSkill.toLowerCase());
+
 exports.analyzeSkills = async (req, res) => {
   try {
     let { name, email, currentSkills, targetRole } = req.body;
     let resumeText = req.body.resumeText || '';
 
     if (typeof currentSkills === 'string') {
-      try {
-        currentSkills = JSON.parse(currentSkills);
-      } catch (e) {
-        currentSkills = currentSkills.split(',').map(s => ({ name: s.trim(), level: 3 }));
-      }
+      try { currentSkills = JSON.parse(currentSkills); }
+      catch (e) { currentSkills = currentSkills.split(',').map(s => s.trim()); }
     }
 
-    const skillNames = Array.isArray(currentSkills) ?
-      currentSkills.map(s => typeof s === 'object' ? s.name : s) : [];
-    const skillLevels = Array.isArray(currentSkills) && typeof currentSkills[0] === 'object' ?
-      currentSkills : skillNames.map(name => ({ name, level: 3 }));
+    const skillNames = Array.isArray(currentSkills)
+      ? currentSkills.map(s => (typeof s === 'object' ? s.name : s)).filter(Boolean)
+      : [];
 
     if (req.file) {
       const pdfData = await pdfParse(req.file.buffer);
       resumeText = pdfData.text;
     }
 
-    // Parse assessment result if provided
     let assessmentResult = null;
     if (req.body.assessmentResult) {
       try { assessmentResult = JSON.parse(req.body.assessmentResult); } catch (e) {}
@@ -39,68 +39,139 @@ exports.analyzeSkills = async (req, res) => {
     const jobRole = await JobRole.findOne({ title: targetRole });
     if (!jobRole) return res.status(404).json({ error: 'Job role not found' });
 
-    // Real missing skills calculation
-    const matchedSkills = jobRole.requiredSkills.filter(skill =>
-      skillNames.some(u => u.toLowerCase().includes(skill.toLowerCase()))
-    );
-    const missingSkills = jobRole.requiredSkills.filter(skill =>
-      !skillNames.some(u => u.toLowerCase().includes(skill.toLowerCase()))
-    );
+    const requiredSkills = jobRole.requiredSkills;
+    const skillBreakdown = assessmentResult?.skillBreakdown || {};
 
-    const matchScore = Math.round((matchedSkills.length / jobRole.requiredSkills.length) * 100);
+    // ── Build Final Skill Profile ──────────────────────────────────────────────
+    // For every required skill, determine its status:
+    //   Verified   — user declared it AND test score ≥ 50%
+    //   Declared   — user declared it but no test data for it
+    //   Discovered — user did NOT declare it but test score ≥ 50%
+    //   Weak       — test score < 40% (regardless of declaration)
+    //   Missing    — not declared, no test data or test score < 50%
 
+    const finalSkillProfile = {};
+
+    requiredSkills.forEach(reqSkill => {
+      const userDeclared = skillNames.some(u => skillMatches(u, reqSkill));
+
+      // Find matching test skill (fuzzy)
+      const testSkillKey = Object.keys(skillBreakdown).find(k => skillMatches(k, reqSkill));
+      const testData = testSkillKey ? skillBreakdown[testSkillKey] : null;
+      const testPct = testData ? testData.proficiency : null;
+
+      if (testPct !== null && testPct < 40) {
+        finalSkillProfile[reqSkill] = 'Weak';
+      } else if (userDeclared && testPct !== null && testPct >= 50) {
+        finalSkillProfile[reqSkill] = 'Verified';
+      } else if (!userDeclared && testPct !== null && testPct >= 50) {
+        finalSkillProfile[reqSkill] = 'Discovered';
+      } else if (userDeclared) {
+        finalSkillProfile[reqSkill] = 'Declared';
+      } else {
+        finalSkillProfile[reqSkill] = 'Missing';
+      }
+    });
+
+    // ── Recalculate Match Score ────────────────────────────────────────────────
+    // Only Verified, Discovered, and Declared count as "covered"
+    const coveredSkills = requiredSkills.filter(s =>
+      ['Verified', 'Discovered', 'Declared'].includes(finalSkillProfile[s])
+    );
+    const matchScore = Math.round((coveredSkills.length / requiredSkills.length) * 100);
+
+    // Strengths = Verified + Discovered + Declared
+    const strengths = coveredSkills;
+
+    // Missing skills = Weak + Missing, categorized by priority
+    const weakSkills    = requiredSkills.filter(s => finalSkillProfile[s] === 'Weak');
+    const missingSkills = requiredSkills.filter(s => finalSkillProfile[s] === 'Missing');
+    const allGapSkills  = [...weakSkills, ...missingSkills];
+
+    const total = allGapSkills.length;
+    const categorizedMissing = {
+      critical: allGapSkills.slice(0, Math.ceil(total * 0.4)),
+      important: allGapSkills.slice(Math.ceil(total * 0.4), Math.ceil(total * 0.75)),
+      optional: allGapSkills.slice(Math.ceil(total * 0.75))
+    };
+
+    // ── Gap Level ──────────────────────────────────────────────────────────────
     let gapLevel = 'High';
     if (matchScore >= 80) gapLevel = 'Low';
     else if (matchScore >= 50) gapLevel = 'Moderate';
 
-    const avgSkillLevel = skillLevels.reduce((sum, s) => sum + s.level, 0) / skillLevels.length;
+    // ── Career Level ───────────────────────────────────────────────────────────
     let careerLevel = 'Beginner';
-    if (matchScore >= 70 && avgSkillLevel >= 4) careerLevel = 'Advanced';
-    else if (matchScore >= 40 && avgSkillLevel >= 3) careerLevel = 'Intermediate';
+    if (matchScore >= 70 && (!assessmentResult || assessmentResult.percentage >= 70)) careerLevel = 'Advanced';
+    else if (matchScore >= 40 && (!assessmentResult || assessmentResult.percentage >= 40)) careerLevel = 'Intermediate';
 
     const aiConfidence = Math.min(95, Math.round(55 + (matchScore * 0.25) + (skillNames.length * 1.5)));
 
-    // Real skill coverage per required skill with user's proficiency level
-    const skillCoverage = jobRole.requiredSkills.map(reqSkill => {
-      const userSkill = skillLevels.find(s => s.name.toLowerCase().includes(reqSkill.toLowerCase()));
+    // ── Skill Coverage (for coverage grid) ────────────────────────────────────
+    const skillCoverage = requiredSkills.map(reqSkill => {
+      const status = finalSkillProfile[reqSkill];
+      const testSkillKey = Object.keys(skillBreakdown).find(k => skillMatches(k, reqSkill));
+      const testData = testSkillKey ? skillBreakdown[testSkillKey] : null;
       return {
         skill: reqSkill,
-        covered: !!userSkill,
-        level: userSkill ? userSkill.level : 0
+        covered: ['Verified', 'Discovered', 'Declared'].includes(status),
+        level: testData ? Math.round(testData.proficiency / 20) : (status === 'Declared' ? 3 : 0),
+        status
       };
     });
 
-    // Categorize missing skills by position in required list (first = most critical)
-    const total = missingSkills.length;
-    const categorizedMissing = {
-      critical: missingSkills.slice(0, Math.ceil(total * 0.4)),
-      important: missingSkills.slice(Math.ceil(total * 0.4), Math.ceil(total * 0.75)),
-      optional: missingSkills.slice(Math.ceil(total * 0.75))
-    };
+    // ── AI Skill Insights ──────────────────────────────────────────────────────
+    const discoveredSkills = requiredSkills.filter(s => finalSkillProfile[s] === 'Discovered');
+    const verifiedSkills   = requiredSkills.filter(s => finalSkillProfile[s] === 'Verified');
 
-    const aiSummary = `Based on your ${skillNames.length} skill${skillNames.length !== 1 ? 's' : ''}, you match ${matchScore}% of the ${targetRole} requirements (${matchedSkills.length} out of ${jobRole.requiredSkills.length} skills). ${matchedSkills.length > 0 ? `Your strongest matched skill is ${matchedSkills[0]}.` : 'You currently have no direct skill matches for this role.'} ${assessmentResult ? `Your skill assessment score was ${assessmentResult.percentage}% (${assessmentResult.skillLevel} level).` : ''} ${missingSkills.length > 0 ? `Focus on ${categorizedMissing.critical[0] || missingSkills[0]} first as it is critical for this role.` : 'You have all the required skills for this role!'}`;
+    const insightLines = [];
+    if (verifiedSkills.length > 0)
+      insightLines.push(`Your declared skills in ${verifiedSkills.slice(0, 3).join(', ')} were confirmed by the test.`);
+    if (discoveredSkills.length > 0)
+      insightLines.push(`We discovered you have knowledge of ${discoveredSkills.join(', ')} based on your test performance — even though you didn't list ${discoveredSkills.length === 1 ? 'it' : 'them'}.`);
+    if (weakSkills.length > 0)
+      insightLines.push(`Your understanding of ${weakSkills.slice(0, 3).join(', ')} is weak based on test results and needs improvement.`);
+    if (assessmentResult)
+      insightLines.push(`If test results differ from your input, your profile has been updated accordingly.`);
 
+    const aiSkillInsights = insightLines.join(' ');
+
+    // ── AI Summary ─────────────────────────────────────────────────────────────
+    const aiSummary = `Based on your ${skillNames.length} declared skill${skillNames.length !== 1 ? 's' : ''} and ${assessmentResult ? 'test performance' : 'skill profile'}, you match ${matchScore}% of the ${targetRole} requirements (${coveredSkills.length} of ${requiredSkills.length} skills). ${strengths.length > 0 ? `Your strongest area is ${strengths[0]}.` : 'You currently have no matched skills for this role.'} ${allGapSkills.length > 0 ? `Focus on ${categorizedMissing.critical[0] || allGapSkills[0]} first as it is critical for this role.` : 'You have all the required skills for this role!'}`;
+
+    // ── Roadmap via AI ─────────────────────────────────────────────────────────
     let roadmap = [];
     let recommendedCertifications = [];
+
+    // Prioritize: weak skills first, then missing
+    const prioritizedGaps = [
+      ...weakSkills.map(s => `${s} (Weak — needs improvement)`),
+      ...missingSkills.map(s => `${s} (Missing)`)
+    ];
 
     try {
       const prompt = `You are an AI career advisor. Analyze this profile and return a JSON learning roadmap.
 
 Target Role: ${targetRole}
-User Skills: ${skillNames.join(', ')}
-Missing Skills: ${missingSkills.join(', ')}
+Declared Skills: ${skillNames.join(', ') || 'None'}
+Verified Skills (declared + test confirmed): ${verifiedSkills.join(', ') || 'None'}
+Discovered Skills (found via test): ${discoveredSkills.join(', ') || 'None'}
+Weak Skills (test score < 40%): ${weakSkills.join(', ') || 'None'}
+Missing Skills: ${missingSkills.join(', ') || 'None'}
 Match Score: ${matchScore}%
-${assessmentResult ? `Skill Assessment Score: ${assessmentResult.percentage}% (${assessmentResult.skillLevel})
-Weak Areas from Test: ${assessmentResult.weakAreas?.slice(0,3).join(', ')}` : 'No assessment taken'}
+${assessmentResult ? `Test Score: ${assessmentResult.percentage}% (${assessmentResult.skillLevel})` : 'No test taken'}
+
+IMPORTANT: Prioritize weak skills FIRST in the roadmap (they need fixing before moving forward), then missing skills.
 
 Return ONLY this JSON structure:
 {
   "roadmap": [
     {
       "month": "Month 1",
+      "focus": "brief focus area",
       "tasks": [
-        {"title": "task description", "difficulty": "Easy", "estimatedTime": "1 week"},
-        {"title": "task description", "difficulty": "Medium", "estimatedTime": "2 weeks"}
+        {"title": "task description", "difficulty": "Easy", "estimatedTime": "1 week", "skill": "SkillName"},
+        {"title": "task description", "difficulty": "Medium", "estimatedTime": "2 weeks", "skill": "SkillName"}
       ]
     }
   ],
@@ -135,22 +206,24 @@ Return ONLY this JSON structure:
         'Data Engineer': ['Google Professional Data Engineer', 'AWS Data Analytics Specialty', 'Databricks Certified Associate']
       };
 
+      // Fallback: weak skills first, then missing
       const chunks = [];
-      for (let i = 0; i < missingSkills.length; i += 2) {
-        chunks.push(missingSkills.slice(i, i + 2));
-      }
+      for (let i = 0; i < prioritizedGaps.length; i += 2)
+        chunks.push(prioritizedGaps.slice(i, i + 2));
 
       roadmap = chunks.slice(0, 3).map((chunk, i) => ({
         month: `Month ${i + 1}`,
+        focus: i === 0 ? 'Fix weak areas' : 'Build missing skills',
         tasks: [
-          { title: `Learn ${chunk[0]}`, difficulty: i === 0 ? 'Easy' : 'Medium', estimatedTime: '2 weeks' },
-          chunk[1] ? { title: `Practice ${chunk[1]}`, difficulty: 'Medium', estimatedTime: '2 weeks' } : { title: 'Build a project using learned skills', difficulty: 'Hard', estimatedTime: '2 weeks' }
+          { title: `Strengthen ${chunk[0].split(' (')[0]}`, difficulty: i === 0 ? 'Easy' : 'Medium', estimatedTime: '2 weeks', skill: chunk[0].split(' (')[0] },
+          chunk[1]
+            ? { title: `Practice ${chunk[1].split(' (')[0]}`, difficulty: 'Medium', estimatedTime: '2 weeks', skill: chunk[1].split(' (')[0] }
+            : { title: 'Build a project using learned skills', difficulty: 'Hard', estimatedTime: '2 weeks', skill: 'Project' }
         ]
       }));
 
-      if (roadmap.length === 0) {
-        roadmap = [{ month: 'Month 1', tasks: [{ title: 'Build advanced projects to deepen expertise', difficulty: 'Hard', estimatedTime: '4 weeks' }] }];
-      }
+      if (roadmap.length === 0)
+        roadmap = [{ month: 'Month 1', focus: 'Advanced practice', tasks: [{ title: 'Build advanced projects to deepen expertise', difficulty: 'Hard', estimatedTime: '4 weeks', skill: 'All' }] }];
 
       recommendedCertifications = certsByRole[targetRole] || ['Relevant Industry Certification', 'Online Professional Course'];
     }
@@ -166,9 +239,11 @@ Return ONLY this JSON structure:
     res.json({
       matchScore,
       gapLevel,
-      strengths: matchedSkills,
+      strengths,
       skillCoverage,
+      finalSkillProfile,
       aiSummary,
+      aiSkillInsights,
       missingSkills: categorizedMissing,
       roadmap,
       recommendedCertifications,
