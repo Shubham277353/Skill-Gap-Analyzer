@@ -7,6 +7,16 @@ export const getJobRoles = async () => {
   return response.data;
 };
 
+export const getAssessmentQuestions = async (role) => {
+  const response = await axios.get(`${API_URL}/assessment/${encodeURIComponent(role)}`);
+  return response.data;
+};
+
+export const submitAssessment = async (role, answers) => {
+  const response = await axios.post(`${API_URL}/assessment/submit`, { role, answers });
+  return response.data;
+};
+
 export const analyzeSkills = async (data) => {
   const response = await axios.post(`${API_URL}/analyze`, data);
   return response.data;

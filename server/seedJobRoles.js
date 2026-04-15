@@ -27,6 +27,41 @@ const jobRoles = [
     title: 'Cybersecurity Specialist',
     requiredSkills: ['Network Security', 'Penetration Testing', 'Cryptography', 'SIEM Tools', 'Incident Response', 'Ethical Hacking'],
     description: 'Protect systems and networks from cyber threats'
+  },
+  {
+    title: 'Data Scientist',
+    requiredSkills: ['Python', 'Machine Learning', 'Statistics', 'Pandas', 'NumPy', 'Data Visualization', 'SQL'],
+    description: 'Analyze complex data to drive business decisions'
+  },
+  {
+    title: 'Machine Learning Engineer',
+    requiredSkills: ['Python', 'TensorFlow', 'PyTorch', 'Deep Learning', 'NLP', 'Model Deployment', 'MLOps'],
+    description: 'Build and deploy machine learning models at scale'
+  },
+  {
+    title: 'Cloud Architect',
+    requiredSkills: ['AWS', 'Azure', 'Google Cloud', 'Terraform', 'Microservices', 'Serverless', 'Networking'],
+    description: 'Design and manage scalable cloud infrastructure'
+  },
+  {
+    title: 'Mobile Developer',
+    requiredSkills: ['React Native', 'Flutter', 'iOS', 'Android', 'JavaScript', 'REST API', 'App Store Deployment'],
+    description: 'Build cross-platform mobile applications'
+  },
+  {
+    title: 'UI/UX Designer',
+    requiredSkills: ['Figma', 'User Research', 'Wireframing', 'Prototyping', 'Design Systems', 'Accessibility', 'CSS'],
+    description: 'Design intuitive and beautiful user experiences'
+  },
+  {
+    title: 'Blockchain Developer',
+    requiredSkills: ['Solidity', 'Ethereum', 'Smart Contracts', 'Web3.js', 'Cryptography', 'DeFi', 'JavaScript'],
+    description: 'Build decentralized applications and smart contracts'
+  },
+  {
+    title: 'Data Engineer',
+    requiredSkills: ['Python', 'SQL', 'Apache Spark', 'ETL Pipelines', 'Data Warehousing', 'Kafka', 'Airflow'],
+    description: 'Build and maintain data pipelines and infrastructure'
   }
 ];
 

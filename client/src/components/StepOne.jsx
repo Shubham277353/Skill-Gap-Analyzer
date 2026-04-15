@@ -3,8 +3,9 @@ import '../styles/StepOne.css';
 
 const popularSkills = [
   'Python', 'JavaScript', 'React', 'Node.js', 'Java', 'C++', 'SQL', 'MongoDB',
-  'Docker', 'Kubernetes', 'AWS', 'Linux', 'Git', 'Network Security', 
-  'Penetration Testing', 'Cryptography', 'Ethical Hacking', 'HTML', 'CSS'
+  'Docker', 'Kubernetes', 'AWS', 'Linux', 'Git', 'Network Security',
+  'Penetration Testing', 'Cryptography', 'Ethical Hacking', 'HTML', 'CSS',
+  'TypeScript', 'Express', 'REST API', 'Machine Learning', 'Data Analysis'
 ];
 
 function StepOne({ data, onNext }) {
@@ -15,11 +16,21 @@ function StepOne({ data, onNext }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const addSkill = (skillName) => {
-    if (!skills.find(s => s.name === skillName)) {
-      setSkills([...skills, { name: skillName, level: 3 }]);
+    const trimmed = skillName.trim();
+    if (trimmed && !skills.find(s => s.name.toLowerCase() === trimmed.toLowerCase())) {
+      setSkills([...skills, { name: trimmed, level: 3 }]);
     }
     setSearchTerm('');
     setShowSuggestions(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchTerm.trim()) {
+        addSkill(searchTerm);
+      }
+    }
   };
 
   const removeSkill = (skillName) => {
@@ -30,13 +41,17 @@ function StepOne({ data, onNext }) {
     setSkills(skills.map(s => s.name === skillName ? { ...s, level } : s));
   };
 
-  const filteredSkills = popularSkills.filter(s => 
-    s.toLowerCase().includes(searchTerm.toLowerCase()) && 
-    !skills.find(skill => skill.name === s)
+  const filteredSkills = popularSkills.filter(s =>
+    s.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    !skills.find(skill => skill.name.toLowerCase() === s.toLowerCase())
   );
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (searchTerm.trim()) {
+      addSkill(searchTerm);
+      return;
+    }
     if (name && email && skills.length > 0) {
       onNext({ name, email, skills });
     }
@@ -73,7 +88,7 @@ function StepOne({ data, onNext }) {
         </div>
 
         <div className="form-group">
-          <label>Your Skills</label>
+          <label>Your Skills <span className="hint">— type anything or pick from suggestions, press Enter to add</span></label>
           <div className="skill-input-wrapper">
             <input
               type="text"
@@ -82,12 +97,20 @@ function StepOne({ data, onNext }) {
                 setSearchTerm(e.target.value);
                 setShowSuggestions(true);
               }}
+              onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Type to search skills..."
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              placeholder="e.g. React, Python, Networking... press Enter to add"
             />
-            {showSuggestions && filteredSkills.length > 0 && (
+            {showSuggestions && searchTerm && (
               <div className="suggestions">
-                {filteredSkills.slice(0, 6).map(skill => (
+                {/* Always show option to add custom skill */}
+                {!popularSkills.find(s => s.toLowerCase() === searchTerm.toLowerCase()) && (
+                  <div className="suggestion-item add-custom" onClick={() => addSkill(searchTerm)}>
+                    ➕ Add "{searchTerm}"
+                  </div>
+                )}
+                {filteredSkills.slice(0, 5).map(skill => (
                   <div key={skill} className="suggestion-item" onClick={() => addSkill(skill)}>
                     {skill}
                   </div>
@@ -121,7 +144,12 @@ function StepOne({ data, onNext }) {
           </div>
         )}
 
-        <button type="submit" className="next-btn" disabled={!name || !email || skills.length === 0}>
+        <button
+          type="button"
+          className="next-btn"
+          disabled={!name || !email || skills.length === 0}
+          onClick={() => onNext({ name, email, skills })}
+        >
           Continue to Role Selection →
         </button>
       </form>

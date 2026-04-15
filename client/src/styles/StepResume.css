@@ -1,0 +1,102 @@
+.resume-box {
+  text-align: center;
+  padding: 40px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  margin: 20px 0 30px;
+  transition: all 0.3s;
+}
+
+.resume-box:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.resume-icon {
+  font-size: 4em;
+  margin-bottom: 15px;
+}
+
+.resume-box h3 {
+  font-size: 1.4em;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.resume-box p {
+  color: #64748b;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.file-label {
+  display: inline-block;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.file-label:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+#resume {
+  display: none;
+}
+
+.remove-file {
+  display: block;
+  margin: 15px auto 0;
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+}
+
+.back-btn {
+  flex: 1;
+  padding: 16px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background: #e2e8f0;
+}
+
+.next-btn {
+  flex: 2;
+  padding: 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.next-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}

@@ -74,6 +74,20 @@
   margin-bottom: 10px;
 }
 
+.optional-tag {
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.9em;
+}
+
+.skip-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: #94a3b8;
+  font-style: italic;
+}
+
 .resume-upload input[type="file"] {
   width: 100%;
   padding: 12px;

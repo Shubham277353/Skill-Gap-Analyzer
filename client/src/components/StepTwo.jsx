@@ -5,7 +5,6 @@ import '../styles/StepTwo.css';
 function StepTwo({ data, onNext, onBack }) {
   const [roles, setRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState(data.targetRole || '');
-  const [resumeFile, setResumeFile] = useState(null);
 
   useEffect(() => {
     loadRoles();
@@ -23,7 +22,7 @@ function StepTwo({ data, onNext, onBack }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedRole) {
-      onNext({ targetRole: selectedRole, resumeFile });
+      onNext({ targetRole: selectedRole });
     }
   };
 
@@ -48,6 +47,13 @@ function StepTwo({ data, onNext, onBack }) {
                 {role.title.includes('Full Stack') && '💻'}
                 {role.title.includes('DevOps') && '🚀'}
                 {role.title.includes('Cyber') && '🔒'}
+                {role.title.includes('Data Scientist') && '📊'}
+                {role.title.includes('Machine Learning') && '🤖'}
+                {role.title.includes('Cloud') && '☁️'}
+                {role.title.includes('Mobile') && '📱'}
+                {role.title.includes('UI/UX') && '🎭'}
+                {role.title.includes('Blockchain') && '⛓️'}
+                {role.title.includes('Data Engineer') && '🔧'}
               </div>
               <h3>{role.title}</h3>
               <p>{role.description}</p>
@@ -63,24 +69,9 @@ function StepTwo({ data, onNext, onBack }) {
           ))}
         </div>
 
-        <div className="resume-upload">
-          <label htmlFor="resume">📄 Upload Resume (Optional)</label>
-          <input
-            type="file"
-            id="resume"
-            accept=".pdf"
-            onChange={(e) => setResumeFile(e.target.files[0])}
-          />
-          {resumeFile && <span className="file-name">✓ {resumeFile.name}</span>}
-        </div>
-
         <div className="button-group">
-          <button type="button" onClick={onBack} className="back-btn">
-            ← Back
-          </button>
-          <button type="submit" className="next-btn" disabled={!selectedRole}>
-            Analyze My Skills →
-          </button>
+          <button type="button" onClick={onBack} className="back-btn">← Back</button>
+          <button type="submit" className="next-btn" disabled={!selectedRole}>Analyze My Skills →</button>
         </div>
       </form>
     </div>
