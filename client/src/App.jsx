@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StepOne from './components/StepOne';
 import StepResume from './components/StepResume';
 import StepTwo from './components/StepTwo';
 import SkillAssessment from './components/SkillAssessment';
 import LoadingScreen from './components/LoadingScreen';
 import Dashboard from './components/Dashboard';
-import { analyzeSkills } from './services/api';
+import { analyzeSkills, getJobRoles } from './services/api';
 import './App.css';
 
 function App() {
@@ -13,6 +13,12 @@ function App() {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [jobRoles, setJobRoles] = useState([]);
+
+  // Fetch roles once on app load
+  useEffect(() => {
+    getJobRoles().then(setJobRoles).catch(console.error);
+  }, []);
 
   const handleStepOne = (data) => {
     setFormData({ ...formData, ...data });
@@ -91,7 +97,7 @@ function App() {
         {loading && <LoadingScreen />}
         {!loading && step === 1 && <StepOne data={formData} onNext={handleStepOne} />}
         {!loading && step === 2 && <StepResume data={formData} onNext={handleStepResume} onBack={() => setStep(1)} />}
-        {!loading && step === 3 && <StepTwo data={formData} onNext={handleStepTwo} onBack={() => setStep(2)} />}
+        {!loading && step === 3 && <StepTwo data={formData} roles={jobRoles} onNext={handleStepTwo} onBack={() => setStep(2)} />}
         {!loading && step === 4 && (
           <SkillAssessment
             targetRole={formData.targetRole}

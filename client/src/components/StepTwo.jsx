@@ -1,23 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getJobRoles } from '../services/api';
 import '../styles/StepTwo.css';
 
-function StepTwo({ data, onNext, onBack }) {
-  const [roles, setRoles] = useState([]);
+function StepTwo({ data, roles, onNext, onBack }) {
   const [selectedRole, setSelectedRole] = useState(data.targetRole || '');
-
-  useEffect(() => {
-    loadRoles();
-  }, []);
-
-  const loadRoles = async () => {
-    try {
-      const data = await getJobRoles();
-      setRoles(data);
-    } catch (error) {
-      console.error('Error loading roles:', error);
-    }
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
