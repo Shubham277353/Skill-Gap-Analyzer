@@ -229,10 +229,12 @@ Return ONLY this JSON structure:
     }
 
     const learningPath = new LearningPath({
-      userId: user._id,
+      userId: req.userId || user._id,
       targetRole,
+      matchScore,
+      careerLevel,
       missingSkills: categorizedMissing,
-      roadmap: { roadmap, recommendedCertifications, matchScore, careerLevel }
+      roadmap: { roadmap, recommendedCertifications }
     });
     await learningPath.save();
 

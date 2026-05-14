@@ -3,7 +3,7 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import '../styles/Dashboard.css';
 
-function Dashboard({ data, onRestart }) {
+function Dashboard({ data, onRestart, onHistory }) {
   const { matchScore, gapLevel, strengths, skillCoverage, finalSkillProfile, aiSummary, aiSkillInsights, missingSkills, roadmap, recommendedCertifications, careerLevel, aiConfidence, assessmentResult } = data;
   const [animatedScore, setAnimatedScore] = useState(0);
   const [simulatedScore, setSimulatedScore] = useState(null);
@@ -72,6 +72,7 @@ function Dashboard({ data, onRestart }) {
           <p>AI-powered career intelligence for <strong>{data.targetRole || 'your target role'}</strong></p>
         </div>
         <div className="header-actions">
+          <button onClick={onHistory} className="export-btn">📊 History</button>
           <button onClick={onRestart} className="restart-btn">🔄 New Analysis</button>
         </div>
       </div>

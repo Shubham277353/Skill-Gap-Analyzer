@@ -5,6 +5,8 @@ const connectDB = require('./config/db');
 const jobRoleRoutes = require('./routes/jobRoleRoutes');
 const analysisRoutes = require('./routes/analysisRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
+const authRoutes = require('./routes/authRoutes');
+const historyRoutes = require('./routes/historyRoutes');
 
 const app = express();
 
@@ -19,6 +21,8 @@ connectDB();
 app.use('/api/job-roles', jobRoleRoutes);
 app.use('/api', analysisRoutes);
 app.use('/api/assessment', assessmentRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/history', historyRoutes);
 
 // Health check
 app.get('/', (req, res) => {

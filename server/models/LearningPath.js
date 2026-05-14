@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const learningPathSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   targetRole: String,
+  matchScore: Number,
+  careerLevel: String,
   missingSkills: mongoose.Schema.Types.Mixed,
   roadmap: mongoose.Schema.Types.Mixed,
   createdAt: { type: Date, default: Date.now }
