@@ -5,27 +5,27 @@ import '../styles/StepTwo.css';
 function StepTwo({ data, roles, onNext, onBack }) {
   const [selectedRole, setSelectedRole] = useState(data.targetRole || '');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (selectedRole) {
-      onNext({ targetRole: selectedRole });
-    }
+  const handleRoleClick = (roleTitle) => {
+    setSelectedRole(roleTitle);
+    setTimeout(() => {
+      onNext({ targetRole: roleTitle });
+    }, 600);
   };
 
   return (
     <div className="step-container">
       <div className="step-header">
         <h2>Choose your target role</h2>
-        <p>Select the career path you want to pursue</p>
+        <p>Click on a role to continue automatically</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="step-form">
+      <div className="step-form">
         <div className="roles-grid">
           {roles.map(role => (
             <div
               key={role._id}
               className={`role-card ${selectedRole === role.title ? 'selected' : ''}`}
-              onClick={() => setSelectedRole(role.title)}
+              onClick={() => handleRoleClick(role.title)}
             >
               <div className="role-icon">
                 {role.title.includes('Frontend') && '🎨'}
@@ -57,9 +57,8 @@ function StepTwo({ data, roles, onNext, onBack }) {
 
         <div className="button-group">
           <button type="button" onClick={onBack} className="back-btn">← Back</button>
-          <button type="submit" className="next-btn" disabled={!selectedRole}>Analyze My Skills →</button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

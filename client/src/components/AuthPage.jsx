@@ -13,14 +13,21 @@ function AuthPage({ onAuth }) {
     const errs = {};
     if (!isLogin && (!formData.name || formData.name.trim().length < 2))
       errs.name = 'Name must be at least 2 characters';
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      errs.email = 'Enter a valid email address';
-    if (!formData.password || formData.password.length < 8)
-      errs.password = 'Password must be at least 8 characters';
-    if (!isLogin && !/\d/.test(formData.password))
-      errs.password = 'Password must contain at least one number';
-    if (!isLogin && formData.password !== formData.confirmPassword)
-      errs.confirmPassword = 'Passwords do not match';
+    if (!formData.email)
+      errs.email = 'Email is required';
+    if (!formData.password)
+      errs.password = 'Password is required';
+    // Only strict validation on signup
+    if (!isLogin) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+        errs.email = 'Enter a valid email address';
+      if (formData.password.length < 8)
+        errs.password = 'Password must be at least 8 characters';
+      if (!/\d/.test(formData.password))
+        errs.password = 'Password must contain at least one number';
+      if (formData.password !== formData.confirmPassword)
+        errs.confirmPassword = 'Passwords do not match';
+    }
     return errs;
   };
 
@@ -28,6 +35,20 @@ function AuthPage({ onAuth }) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: '' });
     setServerError('');
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const errs = { ...errors };
+    if (name === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+      errs.email = 'Enter a valid email address (e.g. john@example.com)';
+    if (name === 'password' && !isLogin && value && value.length < 8)
+      errs.password = 'Password must be at least 8 characters';
+    if (name === 'password' && !isLogin && value && !/\d/.test(value))
+      errs.password = 'Password must contain at least one number';
+    if (name === 'confirmPassword' && value && value !== formData.password)
+      errs.confirmPassword = 'Passwords do not match';
+    setErrors(errs);
   };
 
   const handleSubmit = async (e) => {
@@ -50,6 +71,7 @@ function AuthPage({ onAuth }) {
         || (err.code === 'ERR_NETWORK' ? 'Cannot connect to server. Make sure backend is running.' : err.message)
         || 'Something went wrong';
       setServerError(message);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -119,6 +141,7 @@ function AuthPage({ onAuth }) {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="John Doe"
                   className={errors.name ? 'error' : ''}
                 />
@@ -133,6 +156,7 @@ function AuthPage({ onAuth }) {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="john@example.com"
                 className={errors.email ? 'error' : ''}
               />
@@ -146,6 +170,7 @@ function AuthPage({ onAuth }) {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder={isLogin ? 'Enter your password' : 'Min 8 chars, include a number'}
                 className={errors.password ? 'error' : ''}
               />
@@ -160,6 +185,7 @@ function AuthPage({ onAuth }) {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="Re-enter your password"
                   className={errors.confirmPassword ? 'error' : ''}
                 />

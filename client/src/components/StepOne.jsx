@@ -10,7 +10,6 @@ const popularSkills = [
 
 function StepOne({ data, onNext }) {
   const [name, setName] = useState(data.name || '');
-  const [email, setEmail] = useState(data.email || '');
   const [skills, setSkills] = useState(data.skills || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -52,8 +51,8 @@ function StepOne({ data, onNext }) {
       addSkill(searchTerm);
       return;
     }
-    if (name && email && skills.length > 0) {
-      onNext({ name, email, skills });
+    if (name && skills.length > 0) {
+      onNext({ name, skills });
     }
   };
 
@@ -77,17 +76,6 @@ function StepOne({ data, onNext }) {
         </div>
 
         <div className="form-group">
-          <label>Email Address</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="john@example.com"
-            required
-          />
-        </div>
-
-        <div className="form-group">
           <label>Your Skills <span className="hint">— type anything or pick from suggestions, press Enter to add</span></label>
           <div className="skill-input-wrapper">
             <input
@@ -106,12 +94,12 @@ function StepOne({ data, onNext }) {
               <div className="suggestions">
                 {/* Always show option to add custom skill */}
                 {!popularSkills.find(s => s.toLowerCase() === searchTerm.toLowerCase()) && (
-                  <div className="suggestion-item add-custom" onClick={() => addSkill(searchTerm)}>
+                  <div className="suggestion-item add-custom" onMouseDown={() => addSkill(searchTerm)}>
                     ➕ Add "{searchTerm}"
                   </div>
                 )}
                 {filteredSkills.slice(0, 5).map(skill => (
-                  <div key={skill} className="suggestion-item" onClick={() => addSkill(skill)}>
+                  <div key={skill} className="suggestion-item" onMouseDown={() => addSkill(skill)}>
                     {skill}
                   </div>
                 ))}
@@ -147,8 +135,8 @@ function StepOne({ data, onNext }) {
         <button
           type="button"
           className="next-btn"
-          disabled={!name || !email || skills.length === 0}
-          onClick={() => onNext({ name, email, skills })}
+          disabled={!name || skills.length === 0}
+          onClick={() => onNext({ name, skills })}
         >
           Continue to Role Selection →
         </button>

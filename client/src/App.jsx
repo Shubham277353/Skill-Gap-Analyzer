@@ -72,7 +72,7 @@ function App() {
       const merged = { ...formData };
       const payload = new FormData();
       payload.append('name', merged.name);
-      payload.append('email', merged.email);
+      payload.append('email', user.email);
       payload.append('currentSkills', JSON.stringify(merged.skills));
       payload.append('targetRole', merged.targetRole);
       if (merged.resumeFile) payload.append('resume', merged.resumeFile);
