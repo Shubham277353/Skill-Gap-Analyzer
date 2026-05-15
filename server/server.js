@@ -11,7 +11,13 @@ const historyRoutes = require('./routes/historyRoutes');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow all origins in development and Vercel deployments
+    callback(null, true);
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Connect to MongoDB
