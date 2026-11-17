@@ -10,4 +10,4 @@ const learningPathSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('LearningPath', learningPathSchema);
+module.exports = mongoose.model('LearningPath', learningPathSchema, 'learningPaths');
