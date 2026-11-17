@@ -6,4 +6,4 @@ const jobRoleSchema = new mongoose.Schema({
   description: String
 });
 
-module.exports = mongoose.model('JobRole', jobRoleSchema, 'jobRoles');
+module.exports = mongoose.model('JobRole', jobRoleSchema, 'jobroles');
